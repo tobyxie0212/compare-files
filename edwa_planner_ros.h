@@ -34,8 +34,8 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#ifndef EDWA_LOCAL_PLANNER_EDWA_PLANNER_ROS_H_
-#define EDWA_LOCAL_PLANNER_EDWA_PLANNER_ROS_H_
+#ifndef DWA_LOCAL_PLANNER_DWA_PLANNER_ROS_H_
+#define DWA_LOCAL_PLANNER_DWA_PLANNER_ROS_H_
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
@@ -43,7 +43,7 @@
 #include <tf/transform_listener.h>
 
 #include <dynamic_reconfigure/server.h>
-#include <edwa_local_planner/EDWAPlannerConfig.h>
+#include <dwa_local_planner/DWAPlannerConfig.h>
 
 #include <angles/angles.h>
 
@@ -55,20 +55,20 @@
 
 #include <base_local_planner/odometry_helper_ros.h>
 
-#include <edwa_local_planner/edwa_planner.h>
+#include <dwa_local_planner/dwa_planner.h>
 
-namespace edwa_local_planner {
+namespace dwa_local_planner {
   /**
-   * @class EDWAPlannerROS
-   * @brief ROS Wrapper for the EDWAPlanner that adheres to the
+   * @class DWAPlannerROS
+   * @brief ROS Wrapper for the DWAPlanner that adheres to the
    * BaseLocalPlanner interface and can be used as a plugin for move_base.
    */
-  class EDWAPlannerROS : public nav_core::BaseLocalPlanner {
+  class DWAPlannerROS : public nav_core::BaseLocalPlanner {
     public:
       /**
-       * @brief  Constructor for EDWAPlannerROS wrapper
+       * @brief  Constructor for DWAPlannerROS wrapper
        */
-      EDWAPlannerROS();
+      DWAPlannerROS();
 
       /**
        * @brief  Constructs the ros wrapper
@@ -82,7 +82,7 @@ namespace edwa_local_planner {
       /**
        * @brief  Destructor for the wrapper
        */
-      ~EDWAPlannerROS();
+      ~DWAPlannerROS();
 
       /**
        * @brief  Given the current position, orientation, and velocity of the robot,
@@ -99,7 +99,7 @@ namespace edwa_local_planner {
        * @param cmd_vel Will be filled with the velocity command to be passed to the robot base
        * @return True if a valid trajectory was found, false otherwise
        */
-      bool edwaComputeVelocityCommands(tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
+      bool dwaComputeVelocityCommands(tf::Stamped<tf::Pose>& global_pose, geometry_msgs::Twist& cmd_vel);
 
       /**
        * @brief  Set the plan that the controller is following
@@ -124,7 +124,7 @@ namespace edwa_local_planner {
       /**
        * @brief Callback to update the local planner's parameters based on dynamic reconfigure
        */
-      void reconfigureCB(EDWAPlannerConfig &config, uint32_t level);
+      void reconfigureCB(DWAPlannerConfig &config, uint32_t level);
 
       void publishLocalPlan(std::vector<geometry_msgs::PoseStamped>& path);
 
@@ -137,12 +137,12 @@ namespace edwa_local_planner {
 
       base_local_planner::LocalPlannerUtil planner_util_;
 
-      boost::shared_ptr<EDWAPlanner> dp_; ///< @brief The trajectory controller
+      boost::shared_ptr<DWAPlanner> dp_; ///< @brief The trajectory controller
 
       costmap_2d::Costmap2DROS* costmap_ros_;
 
-      dynamic_reconfigure::Server<EDWAPlannerConfig> *dsrv_;
-      edwa_local_planner::EDWAPlannerConfig default_config_;
+      dynamic_reconfigure::Server<DWAPlannerConfig> *dsrv_;
+      dwa_local_planner::DWAPlannerConfig default_config_;
       bool setup_;
       tf::Stamped<tf::Pose> current_pose_;
 

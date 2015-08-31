@@ -34,7 +34,7 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#include <edwa_local_planner/edwa_planner.h>
+#include <dwa_local_planner/dwa_planner.h>
 #include <base_local_planner/goal_functions.h>
 #include <base_local_planner/map_grid_cost_point.h>
 #include <cmath>
@@ -48,19 +48,8 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 
-#include "auckbot_analysis/ModelTheta.h" //auckbot_analysis
-
-namespace edwa_local_planner {
-
-  //auckbot_analysis
-  void callback(const auckbot_analysis::ModelTheta msg);
-
-  void callback(const auckbot_analysis::ModelTheta msg)
-  {
-    ROS_INFO("callback");
-  }
-
-  void EDWAPlanner::reconfigure(EDWAPlannerConfig &config)
+namespace dwa_local_planner {
+  void DWAPlanner::reconfigure(DWAPlannerConfig &config)
   {
 
     boost::mutex::scoped_lock l(configuration_mutex_);
@@ -84,10 +73,6 @@ namespace edwa_local_planner {
 
     occdist_scale_ = config.occdist_scale;
     obstacle_costs_.setScale(resolution * occdist_scale_);
-
-    //energy term
-    energy_scale_ = 1; //config.energy_scale;
-    energy_costs_.setScale(resolution * energy_scale_);
 
     stop_time_buffer_ = config.stop_time_buffer;
     oscillation_costs_.setOscillationResetDist(config.oscillation_reset_dist, config.oscillation_reset_angle);
@@ -128,25 +113,16 @@ namespace edwa_local_planner {
 
   }
 
-  EDWAPlanner::EDWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *planner_util) :
+  DWAPlanner::DWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *planner_util) :
       planner_util_(planner_util),
       obstacle_costs_(planner_util->getCostmap()),
-      energy_costs_(planner_util->getCostmap()), //energy cost
       path_costs_(planner_util->getCostmap()),
       goal_costs_(planner_util->getCostmap(), 0.0, 0.0, true),
       goal_front_costs_(planner_util->getCostmap(), 0.0, 0.0, true),
       alignment_costs_(planner_util->getCostmap())
   {
     ros::NodeHandle private_nh("~/" + name);
-    //ros::NodeHandle global_nh(name);
 
-    ros::Subscriber sub = private_nh.subscribe(
-      "model_theta", \
-      10, \
-      callback);
-      // &base_local_planner::EnergyCostFunction::thetaCallback, \
-      // &energy_costs_);
-  
     goal_front_costs_.setStopOnFailure( false );
     alignment_costs_.setStopOnFailure( false );
 
@@ -166,7 +142,7 @@ namespace edwa_local_planner {
         sim_period_ = 0.05;
       }
     }
-    ROS_INFO("<EDWA> Sim period is set to %.2f", sim_period_);
+    ROS_INFO("<DWA> Sim period is set to %.2f", sim_period_);
 
     oscillation_costs_.resetOscillationFlags();
 
@@ -176,7 +152,7 @@ namespace edwa_local_planner {
 
 
     private_nh.param("publish_cost_grid_pc", publish_cost_grid_pc_, false);
-    map_viz_.initialize(name, planner_util->getGlobalFrame(), boost::bind(&EDWAPlanner::getCellCosts, this, _1, _2, _3, _4, _5, _6));
+    map_viz_.initialize(name, planner_util->getGlobalFrame(), boost::bind(&DWAPlanner::getCellCosts, this, _1, _2, _3, _4, _5, _6));
 
     std::string frame_id;
     private_nh.param("global_frame_id", frame_id, std::string("odom"));
@@ -196,9 +172,6 @@ namespace edwa_local_planner {
     critics.push_back(&path_costs_); // prefers trajectories on global path
     critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
 
-    //added energy term
-    critics.push_back(&energy_costs_); // prefers energy efficient trajectories
-
     // trajectory generators
     std::vector<base_local_planner::TrajectorySampleGenerator*> generator_list;
     generator_list.push_back(&generator_);
@@ -209,7 +182,7 @@ namespace edwa_local_planner {
   }
 
   // used for visualization only, total_costs are not really total costs
-  bool EDWAPlanner::getCellCosts(int cx, int cy, float &path_cost, float &goal_cost, float &occ_cost, float &total_cost) {
+  bool DWAPlanner::getCellCosts(int cx, int cy, float &path_cost, float &goal_cost, float &occ_cost, float &total_cost) {
 
     path_cost = path_costs_.getCellCosts(cx, cy);
     goal_cost = goal_costs_.getCellCosts(cx, cy);
@@ -228,7 +201,7 @@ namespace edwa_local_planner {
     return true;
   }
 
-  bool EDWAPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan) {
+  bool DWAPlanner::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan) {
     oscillation_costs_.resetOscillationFlags();
     return planner_util_->setPlan(orig_global_plan);
   }
@@ -237,7 +210,7 @@ namespace edwa_local_planner {
    * This function is used when other strategies are to be applied,
    * but the cost functions for obstacles are to be reused.
    */
-  bool EDWAPlanner::checkTrajectory(
+  bool DWAPlanner::checkTrajectory(
       Eigen::Vector3f pos,
       Eigen::Vector3f vel,
       Eigen::Vector3f vel_samples){
@@ -254,7 +227,6 @@ namespace edwa_local_planner {
     generator_.generateTrajectory(pos, vel, vel_samples, traj);
     double cost = scored_sampling_planner_.scoreTrajectory(traj, -1);
     //if the trajectory is a legal one... the check passes
-
     if(cost >= 0) {
       return true;
     }
@@ -265,7 +237,7 @@ namespace edwa_local_planner {
   }
 
 
-  void EDWAPlanner::updatePlanAndLocalCosts(
+  void DWAPlanner::updatePlanAndLocalCosts(
       tf::Stamped<tf::Pose> global_pose,
       const std::vector<geometry_msgs::PoseStamped>& new_plan) {
     global_plan_.resize(new_plan.size());
@@ -317,7 +289,7 @@ namespace edwa_local_planner {
   /*
    * given the current state of the robot, find a good trajectory
    */
-  base_local_planner::Trajectory EDWAPlanner::findBestPath(
+  base_local_planner::Trajectory DWAPlanner::findBestPath(
       tf::Stamped<tf::Pose> global_pose,
       tf::Stamped<tf::Pose> global_vel,
       tf::Stamped<tf::Pose>& drive_velocities,
@@ -340,8 +312,6 @@ namespace edwa_local_planner {
         goal,
         &limits,
         vsamples_);
-
-    energy_costs_.setLastSpeeds(global_vel.getOrigin().getX(), global_vel.getOrigin().getY(), tf::getYaw(global_vel.getRotation()));
 
     result_traj_.cost_ = -7;
     // find best trajectory by sampling and scoring the samples

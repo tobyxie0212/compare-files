@@ -34,14 +34,14 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#ifndef EDWA_LOCAL_PLANNER_EDWA_PLANNER_H_
-#define EDWA_LOCAL_PLANNER_EDWA_PLANNER_H_
+#ifndef DWA_LOCAL_PLANNER_DWA_PLANNER_H_
+#define DWA_LOCAL_PLANNER_DWA_PLANNER_H_
 
 #include <vector>
 #include <Eigen/Core>
 
 
-#include <edwa_local_planner/EDWAPlannerConfig.h>
+#include <dwa_local_planner/DWAPlannerConfig.h>
 
 //for creating a local cost grid
 #include <base_local_planner/map_grid_visualizer.h>
@@ -60,17 +60,14 @@
 #include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 
-//energy_cost_function
-#include <base_local_planner/energy_cost_function.h>
-
 #include <nav_msgs/Path.h>
 
-namespace edwa_local_planner {
+namespace dwa_local_planner {
   /**
-   * @class EDWAPlanner
+   * @class DWAPlanner
    * @brief A class implementing a local planner using the Dynamic Window Approach
    */
-  class EDWAPlanner {
+  class DWAPlanner {
     public:
       /**
        * @brief  Constructor for the planner
@@ -78,17 +75,17 @@ namespace edwa_local_planner {
        * @param costmap_ros A pointer to the costmap instance the planner should use
        * @param global_frame the frame id of the tf frame to use
        */
-      EDWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *planner_util);
+      DWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *planner_util);
 
       /**
        * @brief  Destructor for the planner
        */
-      ~EDWAPlanner() {if(traj_cloud_) delete traj_cloud_;}
+      ~DWAPlanner() {if(traj_cloud_) delete traj_cloud_;}
 
       /**
        * @brief Reconfigures the trajectory planner
        */
-      void reconfigure(EDWAPlannerConfig &cfg);
+      void reconfigure(DWAPlannerConfig &cfg);
 
       /**
        * @brief  Check if a trajectory is legal for a position/velocity pair
@@ -150,10 +147,10 @@ namespace edwa_local_planner {
       base_local_planner::LocalPlannerUtil *planner_util_;
 
       double stop_time_buffer_; ///< @brief How long before hitting something we're going to enforce that the robot stop
-      double pdist_scale_, gdist_scale_, occdist_scale_, energy_scale_;
+      double pdist_scale_, gdist_scale_, occdist_scale_;
       Eigen::Vector3f vsamples_;
 
-      double sim_period_;///< @brief The number of seconds to use to compute max/min vels for edwa
+      double sim_period_;///< @brief The number of seconds to use to compute max/min vels for dwa
       base_local_planner::Trajectory result_traj_;
 
       double forward_point_distance_;
@@ -178,7 +175,6 @@ namespace edwa_local_planner {
       base_local_planner::MapGridCostFunction goal_costs_;
       base_local_planner::MapGridCostFunction goal_front_costs_;
       base_local_planner::MapGridCostFunction alignment_costs_;
-      base_local_planner::EnergyCostFunction energy_costs_; //energy cost function
 
       base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
   };

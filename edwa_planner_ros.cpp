@@ -35,7 +35,7 @@
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
 
-#include <edwa_local_planner/edwa_planner_ros.h>
+#include <dwa_local_planner/dwa_planner_ros.h>
 #include <Eigen/Core>
 #include <cmath>
 
@@ -47,11 +47,11 @@
 #include <nav_msgs/Path.h>
 
 //register this planner as a BaseLocalPlanner plugin
-PLUGINLIB_EXPORT_CLASS(edwa_local_planner::EDWAPlannerROS, nav_core::BaseLocalPlanner)
+PLUGINLIB_EXPORT_CLASS(dwa_local_planner::DWAPlannerROS, nav_core::BaseLocalPlanner)
 
-namespace edwa_local_planner {
+namespace dwa_local_planner {
 
-  void EDWAPlannerROS::reconfigureCB(EDWAPlannerConfig &config, uint32_t level) {
+  void DWAPlannerROS::reconfigureCB(DWAPlannerConfig &config, uint32_t level) {
       if (setup_ && config.restore_defaults) {
         config = default_config_;
         config.restore_defaults = false;
@@ -82,16 +82,16 @@ namespace edwa_local_planner {
       limits.rot_stopped_vel = config.rot_stopped_vel;
       planner_util_.reconfigureCB(limits, config.restore_defaults);
 
-      // update edwa specific configuration
+      // update dwa specific configuration
       dp_->reconfigure(config);
   }
 
-  EDWAPlannerROS::EDWAPlannerROS() : initialized_(false),
+  DWAPlannerROS::DWAPlannerROS() : initialized_(false),
       odom_helper_("odom"), setup_(false) {
 
   }
 
-  void EDWAPlannerROS::initialize(
+  void DWAPlannerROS::initialize(
       std::string name,
       tf::TransformListener* tf,
       costmap_2d::Costmap2DROS* costmap_ros) {
@@ -110,7 +110,7 @@ namespace edwa_local_planner {
       planner_util_.initialize(tf, costmap, costmap_ros_->getGlobalFrameID());
 
       //create the actual planner that we'll use.. it'll configure itself from the parameter server
-      dp_ = boost::shared_ptr<EDWAPlanner>(new EDWAPlanner(name, &planner_util_));
+      dp_ = boost::shared_ptr<DWAPlanner>(new DWAPlanner(name, &planner_util_));
 
       if( private_nh.getParam( "odom_topic", odom_topic_ ))
       {
@@ -119,8 +119,8 @@ namespace edwa_local_planner {
       
       initialized_ = true;
 
-      dsrv_ = new dynamic_reconfigure::Server<EDWAPlannerConfig>(private_nh);
-      dynamic_reconfigure::Server<EDWAPlannerConfig>::CallbackType cb = boost::bind(&EDWAPlannerROS::reconfigureCB, this, _1, _2);
+      dsrv_ = new dynamic_reconfigure::Server<DWAPlannerConfig>(private_nh);
+      dynamic_reconfigure::Server<DWAPlannerConfig>::CallbackType cb = boost::bind(&DWAPlannerROS::reconfigureCB, this, _1, _2);
       dsrv_->setCallback(cb);
     }
     else{
@@ -128,7 +128,7 @@ namespace edwa_local_planner {
     }
   }
   
-  bool EDWAPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan) {
+  bool DWAPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped>& orig_global_plan) {
     if (! isInitialized()) {
       ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
       return false;
@@ -140,7 +140,7 @@ namespace edwa_local_planner {
     return dp_->setPlan(orig_global_plan);
   }
 
-  bool EDWAPlannerROS::isGoalReached() {
+  bool DWAPlannerROS::isGoalReached() {
     if (! isInitialized()) {
       ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
       return false;
@@ -158,23 +158,23 @@ namespace edwa_local_planner {
     }
   }
 
-  void EDWAPlannerROS::publishLocalPlan(std::vector<geometry_msgs::PoseStamped>& path) {
+  void DWAPlannerROS::publishLocalPlan(std::vector<geometry_msgs::PoseStamped>& path) {
     base_local_planner::publishPlan(path, l_plan_pub_);
   }
 
 
-  void EDWAPlannerROS::publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path) {
+  void DWAPlannerROS::publishGlobalPlan(std::vector<geometry_msgs::PoseStamped>& path) {
     base_local_planner::publishPlan(path, g_plan_pub_);
   }
 
-  EDWAPlannerROS::~EDWAPlannerROS(){
+  DWAPlannerROS::~DWAPlannerROS(){
     //make sure to clean things up
     delete dsrv_;
   }
 
 
 
-  bool EDWAPlannerROS::edwaComputeVelocityCommands(tf::Stamped<tf::Pose> &global_pose, geometry_msgs::Twist& cmd_vel) {
+  bool DWAPlannerROS::dwaComputeVelocityCommands(tf::Stamped<tf::Pose> &global_pose, geometry_msgs::Twist& cmd_vel) {
     // dynamic window sampling approach to get useful velocity commands
     if(! isInitialized()){
       ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
@@ -214,14 +214,14 @@ namespace edwa_local_planner {
     //if we cannot move... tell someone
     std::vector<geometry_msgs::PoseStamped> local_plan;
     if(path.cost_ < 0) {
-      ROS_DEBUG_NAMED("edwa_local_planner",
-          "The edwa local planner failed to find a valid plan, cost functions discarded all candidates. This can mean there is an obstacle too close to the robot.");
+      ROS_DEBUG_NAMED("dwa_local_planner",
+          "The dwa local planner failed to find a valid plan, cost functions discarded all candidates. This can mean there is an obstacle too close to the robot.");
       local_plan.clear();
       publishLocalPlan(local_plan);
       return false;
     }
 
-    ROS_DEBUG_NAMED("edwa_local_planner", "A valid velocity command of (%.2f, %.2f, %.2f) was found for this cycle.", 
+    ROS_DEBUG_NAMED("dwa_local_planner", "A valid velocity command of (%.2f, %.2f, %.2f) was found for this cycle.", 
                     cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
 
     // Fill out the local plan
@@ -249,8 +249,8 @@ namespace edwa_local_planner {
 
 
 
-  bool EDWAPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel) {
-    // dispatches to either edwa sampling control or stop and rotate control, depending on whether we have been close enough to goal
+  bool DWAPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel) {
+    // dispatches to either dwa sampling control or stop and rotate control, depending on whether we have been close enough to goal
     if ( ! costmap_ros_->getRobotPose(current_pose_)) {
       ROS_ERROR("Could not get robot pose");
       return false;
@@ -263,12 +263,12 @@ namespace edwa_local_planner {
 
     //if the global plan passed in is empty... we won't do anything
     if(transformed_plan.empty()) {
-      ROS_WARN_NAMED("edwa_local_planner", "Received an empty transformed plan.");
+      ROS_WARN_NAMED("dwa_local_planner", "Received an empty transformed plan.");
       return false;
     }
-    ROS_DEBUG_NAMED("edwa_local_planner", "Received a transformed plan with %zu points.", transformed_plan.size());
+    ROS_DEBUG_NAMED("dwa_local_planner", "Received a transformed plan with %zu points.", transformed_plan.size());
 
-    // update plan in edwa_planner even if we just stop and rotate, to allow checkTrajectory
+    // update plan in dwa_planner even if we just stop and rotate, to allow checkTrajectory
     dp_->updatePlanAndLocalCosts(current_pose_, transformed_plan);
 
     if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_)) {
@@ -285,13 +285,13 @@ namespace edwa_local_planner {
           &planner_util_,
           odom_helper_,
           current_pose_,
-          boost::bind(&EDWAPlanner::checkTrajectory, dp_, _1, _2, _3));
+          boost::bind(&DWAPlanner::checkTrajectory, dp_, _1, _2, _3));
     } else {
-      bool isOk = edwaComputeVelocityCommands(current_pose_, cmd_vel);
+      bool isOk = dwaComputeVelocityCommands(current_pose_, cmd_vel);
       if (isOk) {
         publishGlobalPlan(transformed_plan);
       } else {
-        ROS_WARN_NAMED("edwa_local_planner", "EDWA planner failed to produce path.");
+        ROS_WARN_NAMED("dwa_local_planner", "DWA planner failed to produce path.");
         std::vector<geometry_msgs::PoseStamped> empty_plan;
         publishGlobalPlan(empty_plan);
       }
